@@ -1,0 +1,55 @@
+"""
+extraction/utility_extractor.py
+Utility Bill field extractor.
+"""
+import re
+from extraction.base_extractor import find_near_keyword, extract_date, extract_amount, clean_field
+
+
+def extract(text: str) -> dict:
+    result = {
+        "utility_type": None,
+        "account_id": None,
+        "customer_name": None,
+        "service_address": None,
+        "billing_period": None,
+        "bill_date": None,
+        "due_date": None,
+        "previous_reading": None,
+        "current_reading": None,
+        "units_consumed": None,
+        "amount_due": None,
+        "_raw_text_length": len(text),
+    }
+
+    # Detect utility type
+    type_map = {
+        "electricity": ["electricity", "electric", "kwh", "units consumed"],
+        "water": ["water", "kilolitres", "kl", "water usage"],
+        "gas": ["gas", "natural gas", "mj", "gigajoule"],
+        "internet": ["broadband", "internet", "data usage", "gb used"],
+    }
+    text_lower = text.lower()
+    for utype, indicators in type_map.items():
+        if any(ind in text_lower for ind in indicators):
+            result["utility_type"] = utype
+            break
+
+    result["account_id"]      = find_near_keyword(text, ["account id", "account number", "customer id", "account no"])
+    result["customer_name"]   = find_near_keyword(text, ["customer name", "name", "account holder"])
+    result["service_address"] = find_near_keyword(text, ["service address", "supply address", "property address", "address"])
+    result["billing_period"]  = find_near_keyword(text, ["billing period", "bill period", "service period", "for period"])
+    result["bill_date"]       = extract_date(text, ["bill date", "issue date", "date"])
+    result["due_date"]        = extract_date(text, ["due date", "pay by", "payment due"])
+
+    # Meter readings
+    prev = re.search(r"previous\s+(?:reading|meter)\s*[:\-]?\s*([\d,]+)", text, re.IGNORECASE)
+    curr = re.search(r"current\s+(?:reading|meter)\s*[:\-]?\s*([\d,]+)", text, re.IGNORECASE)
+    units = re.search(r"(?:units?\s+consumed|usage|consumption)\s*[:\-]?\s*([\d,]+\.?\d*)", text, re.IGNORECASE)
+
+    result["previous_reading"] = prev.group(1) if prev else None
+    result["current_reading"]  = curr.group(1) if curr else None
+    result["units_consumed"]   = units.group(1) if units else None
+    result["amount_due"]       = extract_amount(text, ["amount due", "total due", "total amount", "amount payable", "total"])
+
+    return result

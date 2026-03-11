@@ -1,0 +1,36 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+*.egg-info/
+dist/
+build/
+.eggs/
+
+# Virtual environments
+venv/
+.venv/
+env/
+.env/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Output (generated files — do not commit)
+output/
+*.json
+
+# Sample PDFs (generated — do not commit large binaries)
+sample_pdfs/*.pdf
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log

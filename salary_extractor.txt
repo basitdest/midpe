@@ -1,0 +1,39 @@
+"""
+extraction/salary_extractor.py
+Salary Slip field extractor.
+"""
+import re
+from extraction.base_extractor import find_near_keyword, extract_date, extract_amount, extract_table_rows, clean_field
+
+
+def extract(text: str) -> dict:
+    result = {
+        "employee_name": None,
+        "employee_id": None,
+        "department": None,
+        "designation": None,
+        "pay_period": None,
+        "basic_pay": None,
+        "gross_salary": None,
+        "total_deductions": None,
+        "net_salary": None,
+        "earnings": [],
+        "deductions": [],
+        "_raw_text_length": len(text),
+    }
+
+    result["employee_name"]  = find_near_keyword(text, ["employee name", "name", "employee"])
+    result["employee_id"]    = find_near_keyword(text, ["employee id", "emp id", "employee no", "staff id"])
+    result["department"]     = find_near_keyword(text, ["department", "dept"])
+    result["designation"]    = find_near_keyword(text, ["designation", "position", "title", "role"])
+    result["pay_period"]     = find_near_keyword(text, ["pay period", "salary month", "for the month of", "month"])
+
+    result["basic_pay"]        = extract_amount(text, ["basic pay", "basic salary", "base pay", "basic"])
+    result["gross_salary"]     = extract_amount(text, ["gross salary", "gross pay", "gross earnings", "gross"])
+    result["total_deductions"] = extract_amount(text, ["total deductions", "total deduction", "deductions"])
+    result["net_salary"]       = extract_amount(text, ["net salary", "net pay", "take home", "net amount"])
+
+    result["earnings"]   = extract_table_rows(text, mode="salary")
+    result["deductions"] = []  # would be separated by section in a real implementation
+
+    return result

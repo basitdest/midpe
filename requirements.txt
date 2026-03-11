@@ -1,0 +1,36 @@
+# ─────────────────────────────────────────────────────────────
+# MIDPE — requirements.txt
+# Install with: pip install -r requirements.txt
+#
+# Optional extras are commented out — uncomment as needed.
+# ─────────────────────────────────────────────────────────────
+
+# ── PDF Text Extraction (Strategy A) ─────────────────────────
+PyMuPDF>=1.23.0           # Primary: fast text layer extraction (import as fitz)
+pdfplumber>=0.10.0        # Fallback text + table extraction
+
+# ── OCR Support (Strategy B — scanned/image PDFs) ────────────
+# Uncomment these if your PDFs are scanned images:
+# pytesseract>=0.3.10     # Python wrapper for Tesseract OCR
+# pdf2image>=1.17.0       # Convert PDF pages to images for OCR
+#
+# Also requires the Tesseract binary:
+#   Ubuntu/Debian : sudo apt install tesseract-ocr
+#   macOS         : brew install tesseract
+#   Windows       : https://github.com/UB-Mannheim/tesseract/wiki
+
+# ── PDF Generation (for creating synthetic test PDFs) ────────
+reportlab>=4.0.0          # Generate PDF files from Python (used by tests/generate_sample_pdfs.py)
+
+# ── Standard Library Only — no extra installs needed for: ─────
+# re, json, os, sys, math, datetime, collections, argparse, importlib
+
+# ── Optional: Excel output ───────────────────────────────────
+# openpyxl>=3.1.0         # Write results to .xlsx (future feature)
+
+# ── Optional: Enhanced NLP (named entity recognition) ────────
+# spacy>=3.7.0            # If you want NER in generic_extractor.py
+#                         # After install: python -m spacy download en_core_web_sm
+
+# ── Optional: Dev / testing ───────────────────────────────────
+# pytest>=7.4.0           # Run: pytest tests/

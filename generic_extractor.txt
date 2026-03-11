@@ -1,0 +1,76 @@
+"""
+extraction/generic_extractor.py
+Generic Fallback Extractor — Step 5 of MIDPE pipeline.
+
+Used when:
+  - Document type is unknown
+  - Confidence is too low for a specific extractor
+  - Document type is "application_form" or "report" (broad categories)
+
+Returns all detectable structure: KV pairs, tables, dates, amounts, entities.
+"""
+
+import re
+from extraction.base_extractor import (
+    extract_all_kv, extract_all_amounts, extract_named_entities,
+    extract_table_rows, clean_field
+)
+
+DATE_REGEX = r"""
+    (?:
+        \d{1,2}[\/\-\.]\d{1,2}[\/\-\.]\d{2,4}
+        |
+        \d{4}[\/\-\.]\d{1,2}[\/\-\.]\d{1,2}
+        |
+        \d{1,2}\s+(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\s+\d{4}
+        |
+        (?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\s+\d{1,2},?\s+\d{4}
+        |
+        (?:January|February|March|April|May|June|July|August|September|October|November|December)\s+\d{4}
+    )
+"""
+
+
+def extract(text: str) -> dict:
+    """
+    Generic extraction. Returns maximum structured data from any document.
+
+    Output schema:
+    {
+        "detected_dates": [],
+        "detected_amounts": [],
+        "possible_entities": {},
+        "key_value_pairs": {},
+        "detected_tables": [],
+        "raw_text_preview": "",
+        "word_count": int
+    }
+    """
+    # All dates
+    dates = list(set(re.findall(DATE_REGEX, text, re.IGNORECASE | re.VERBOSE)))
+    dates = [d.strip() for d in dates if d.strip()]
+
+    # All amounts
+    amounts = extract_all_amounts(text)
+
+    # Named entities (emails, phones, URLs)
+    entities = extract_named_entities(text)
+
+    # Key-value pairs
+    kv_pairs = extract_all_kv(text)
+
+    # Tables (generic)
+    tables = extract_table_rows(text, mode="invoice")
+
+    # First 500 chars as preview
+    preview = " ".join(text.split())[:500]
+
+    return {
+        "detected_dates":    dates,
+        "detected_amounts":  amounts,
+        "possible_entities": entities,
+        "key_value_pairs":   kv_pairs,
+        "detected_tables":   tables,
+        "raw_text_preview":  preview,
+        "word_count":        len(text.split()),
+    }

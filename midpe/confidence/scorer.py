@@ -11,7 +11,7 @@ Produces a confidence score (0–1) for the extracted output based on:
 Also determines storage action: "verified" | "needs_review" | "unverified" | "rejected"
 """
 
-from config import CONFIDENCE_CONFIG, VALIDATION_RULES
+from midpe.config import CONFIDENCE_CONFIG, VALIDATION_RULES
 
 
 def score_extraction(

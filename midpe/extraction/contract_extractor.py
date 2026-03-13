@@ -3,7 +3,7 @@ extraction/contract_extractor.py
 Contract field extractor.
 """
 import re
-from extraction.base_extractor import find_near_keyword, extract_date, clean_field
+from midpe.extraction.base_extractor import find_near_keyword, extract_date, clean_field
 
 
 def extract(text: str) -> dict:

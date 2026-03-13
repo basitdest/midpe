@@ -11,7 +11,7 @@ Returns all detectable structure: KV pairs, tables, dates, amounts, entities.
 """
 
 import re
-from extraction.base_extractor import (
+from midpe.extraction.base_extractor import (
     extract_all_kv, extract_all_amounts, extract_named_entities,
     extract_table_rows, clean_field
 )

@@ -3,7 +3,7 @@ extraction/salary_extractor.py
 Salary Slip field extractor.
 """
 import re
-from extraction.base_extractor import find_near_keyword, extract_date, extract_amount, extract_table_rows, clean_field
+from midpe.extraction.base_extractor import find_near_keyword, extract_date, extract_amount, extract_table_rows, clean_field
 
 
 def extract(text: str) -> dict:

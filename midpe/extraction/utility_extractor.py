@@ -3,7 +3,7 @@ extraction/utility_extractor.py
 Utility Bill field extractor.
 """
 import re
-from extraction.base_extractor import find_near_keyword, extract_date, extract_amount, clean_field
+from midpe.extraction.base_extractor import find_near_keyword, extract_date, extract_amount, clean_field
 
 
 def extract(text: str) -> dict:

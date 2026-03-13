@@ -1,9 +1,6 @@
 """
 midpe/pipeline.py
 MIDPE — Pipeline Orchestrator
-
-The single function that runs the full 5-step document processing chain.
-Import and call from run.py or any other script.
 """
 
 import json
@@ -18,11 +15,6 @@ from midpe.confidence.scorer import score_extraction
 from midpe.config import STORAGE_CONFIG
 
 
-# ─────────────────────────────────────────────────────────────
-# EXTRACTOR REGISTRY
-# To add a new document type: add entry here + create the module
-# ─────────────────────────────────────────────────────────────
-
 EXTRACTOR_REGISTRY = {
     "invoice_extractor":  "midpe.extraction.invoice_extractor",
     "bank_extractor":     "midpe.extraction.bank_extractor",
@@ -35,7 +27,6 @@ EXTRACTOR_REGISTRY = {
 
 
 def _load_extractor(name: str):
-    """Dynamically import and return the extract() function for a given extractor name."""
     module_path = EXTRACTOR_REGISTRY.get(name, "midpe.extraction.generic_extractor")
     module = importlib.import_module(module_path)
     return module.extract
@@ -43,12 +34,13 @@ def _load_extractor(name: str):
 
 def _read_pdf_text(filepath: str) -> str:
     """
-    Extract raw text from a PDF file.
-    Tries PyMuPDF first, then pdfplumber, then Tesseract OCR.
+    Extract raw text from a PDF.
+    Tries PyMuPDF → pdfplumber → Tesseract OCR in order.
+    Raises RuntimeError with a clear message if the file cannot be read.
     """
     text = ""
 
-    # Strategy A — PyMuPDF (fastest, best for digital PDFs)
+    # Strategy A — PyMuPDF
     try:
         import fitz
         doc = fitz.open(filepath)
@@ -57,7 +49,9 @@ def _read_pdf_text(filepath: str) -> str:
         if text.strip():
             return text
     except ImportError:
-        pass
+        pass  # not installed, try next
+    except Exception as e:
+        raise RuntimeError(f"PyMuPDF failed to open the file: {e}") from e
 
     # Strategy A fallback — pdfplumber
     try:
@@ -67,16 +61,22 @@ def _read_pdf_text(filepath: str) -> str:
         if text.strip():
             return text
     except ImportError:
-        pass
+        pass  # not installed, try next
+    except Exception as e:
+        raise RuntimeError(f"pdfplumber failed to open the file: {e}") from e
 
-    # Strategy B — Tesseract OCR (scanned/image PDFs)
+    # Strategy B — Tesseract OCR (scanned/image PDFs only)
     try:
         import pytesseract
         from pdf2image import convert_from_path
         images = convert_from_path(filepath)
         text = "\n".join(pytesseract.image_to_string(img) for img in images)
-    except Exception:
-        pass
+        if text.strip():
+            return text
+    except ImportError:
+        pass  # pdf2image or pytesseract not installed
+    except Exception as e:
+        raise RuntimeError(f"OCR failed: {e}") from e
 
     return text
 
@@ -94,33 +94,60 @@ def process_document(
     Args:
         filepath   : Path to a PDF file on disk
         text       : Raw text string (use instead of filepath for testing)
-        filename   : Override filename in metadata (auto-set if filepath given)
+        filename   : Override filename in metadata
         save_output: Write result JSON to output_dir
         output_dir : Override the output directory from config
-
-    Returns:
-        Full structured result dict (also saved as JSON if save_output=True)
     """
     start_time = datetime.now(timezone.utc)
     log = []
 
-    # ── Resolve input ────────────────────────────────────────
+    # ── Resolve input ─────────────────────────────────────────
     if filepath:
         if not os.path.isfile(filepath):
-            return {"error": f"File not found: {filepath}", "status": "failed"}
+            return {
+                "error": f"File not found: '{filepath}'. Check the path is correct.",
+                "status": "failed",
+                "filename": os.path.basename(filepath),
+            }
         filename = os.path.basename(filepath)
         log.append(f"Reading PDF: {filepath}")
-        text = _read_pdf_text(filepath)
+        try:
+            text = _read_pdf_text(filepath)
+        except RuntimeError as e:
+            return {
+                "error": str(e),
+                "status": "failed",
+                "filename": filename,
+            }
 
     if not text or not text.strip():
-        return {
-            "error": "No text could be extracted from the document. "
-                     "If it is a scanned PDF, ensure Tesseract is installed.",
-            "status": "failed",
-            "filename": filename,
-        }
+        # Diagnose why no text was extracted
+        libs = []
+        try:
+            import fitz
+            libs.append("PyMuPDF")
+        except ImportError:
+            pass
+        try:
+            import pdfplumber
+            libs.append("pdfplumber")
+        except ImportError:
+            pass
 
-    # ── Step 1: Document Classification ──────────────────────
+        if not libs:
+            msg = (
+                "No PDF library is installed. "
+                "Run:  pip install pdfplumber"
+            )
+        else:
+            msg = (
+                f"No text could be extracted (tried: {', '.join(libs)}). "
+                "The PDF may be a scanned image — install Tesseract + pdf2image for OCR support, "
+                "or verify the file is a valid PDF and not empty or password-protected."
+            )
+        return {"error": msg, "status": "failed", "filename": filename}
+
+    # ── Step 1: Classification ────────────────────────────────
     log.append("Step 1: Classifying document type...")
     classification = classify_document(text)
     doc_type = classification["doc_type"]
@@ -131,17 +158,17 @@ def process_document(
     strategy = select_strategy(text, doc_type)
     log.append(f"  → {strategy['primary']} | {strategy['reason']}")
 
-    # ── Step 3: Field Extraction ─────────────────────────────
+    # ── Step 3: Field Extraction ──────────────────────────────
     extractor_name = classification["extractor"]
-    log.append(f"Step 3: Extracting fields with [{extractor_name}]...")
+    log.append(f"Step 3: Extracting fields [{extractor_name}]...")
     extract_fn = _load_extractor(extractor_name)
     extracted = extract_fn(text)
     log.append(f"  → {len(extracted)} fields returned")
 
     # ── Step 4a: Validation ───────────────────────────────────
-    log.append("Step 4a: Validating extracted fields...")
+    log.append("Step 4a: Validating fields...")
     validation = validate(doc_type, extracted)
-    log.append(f"  → Valid: {validation['is_valid']} | Errors: {len(validation['errors'])} | Warnings: {len(validation['warnings'])}")
+    log.append(f"  → Valid: {validation['is_valid']} | Errors: {len(validation['errors'])}")
 
     # ── Step 4b: Confidence Scoring ───────────────────────────
     log.append("Step 4b: Scoring confidence...")
@@ -153,7 +180,7 @@ def process_document(
     )
     log.append(f"  → Score: {confidence['final_score']:.2%} | Action: {confidence['storage_action'].upper()}")
 
-    # ── Assemble Output ───────────────────────────────────────
+    # ── Assemble output ───────────────────────────────────────
     elapsed_ms = int((datetime.now(timezone.utc) - start_time).total_seconds() * 1000)
 
     result = {
@@ -179,7 +206,7 @@ def process_document(
         "pipeline_log": log,
     }
 
-    # ── Save JSON output ──────────────────────────────────────
+    # ── Save JSON ─────────────────────────────────────────────
     if save_output:
         out_dir = output_dir or STORAGE_CONFIG.get("output_dir", "output")
         os.makedirs(out_dir, exist_ok=True)
@@ -188,6 +215,5 @@ def process_document(
         with open(out_path, "w", encoding="utf-8") as f:
             json.dump(result, f, indent=2, default=str)
         result["_saved_to"] = out_path
-        log.append(f"  → Saved to: {out_path}")
 
     return result

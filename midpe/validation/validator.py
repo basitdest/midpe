@@ -1,11 +1,11 @@
-
+"""
 validation/validator.py
 Validation Engine — validates extracted fields against configurable rules.
 """
 
 import re
 from datetime import datetime
-from config import VALIDATION_RULES
+from midpe.config import VALIDATION_RULES
 
 
 def validate(doc_type: str, extracted: dict) -> dict:
@@ -62,10 +62,8 @@ def _parse_number(value):
 def _is_valid_date(value, formats):
     for fmt in formats:
         try:
-            datetime.strptime(value, fmt)
+            datetime.strptime(str(value), fmt)
             return True
         except ValueError:
             continue
     return False
-PYEOF
-echo "done"

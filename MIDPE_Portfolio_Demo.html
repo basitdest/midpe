@@ -1,0 +1,733 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MIDPE — Document Intelligence Demo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=Syne:wght@400;500;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #0a0a0b;
+  --bg2: #111113;
+  --bg3: #18181c;
+  --bg4: #1e1e24;
+  --border: rgba(255,255,255,0.07);
+  --border2: rgba(255,255,255,0.12);
+  --text: #f0eff4;
+  --muted: #8a8898;
+  --accent: #b8ff57;
+  --accent2: #57c8ff;
+  --accent3: #ff8c57;
+  --verified: #57ff9e;
+  --review: #ffd557;
+  --unverified: #8a8898;
+  --rejected: #ff5757;
+  --mono: 'DM Mono', monospace;
+  --display: 'Syne', sans-serif;
+  --body: 'DM Sans', sans-serif;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html { scroll-behavior: smooth; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--body);
+  font-size: 15px;
+  line-height: 1.6;
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* ── Grid texture ── */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(255,255,255,0.015) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,0.015) 1px, transparent 1px);
+  background-size: 40px 40px;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.wrap { position: relative; z-index: 1; max-width: 960px; margin: 0 auto; padding: 0 2rem; }
+
+/* ── NAV ── */
+nav {
+  position: fixed; top: 0; left: 0; right: 0;
+  z-index: 100;
+  border-bottom: 1px solid var(--border);
+  background: rgba(10,10,11,0.85);
+  backdrop-filter: blur(12px);
+}
+.nav-inner {
+  max-width: 960px; margin: 0 auto; padding: 0 2rem;
+  height: 56px; display: flex; align-items: center; justify-content: space-between;
+}
+.nav-logo { font-family: var(--display); font-weight: 700; font-size: 17px; letter-spacing: -0.02em; }
+.nav-logo span { color: var(--accent); }
+.nav-tag {
+  font-family: var(--mono); font-size: 11px; color: var(--muted);
+  border: 1px solid var(--border2); padding: 3px 10px; border-radius: 2px;
+}
+
+/* ── HERO ── */
+.hero { padding: 140px 0 80px; }
+
+.hero-eyebrow {
+  display: inline-flex; align-items: center; gap: 8px;
+  font-family: var(--mono); font-size: 11px; color: var(--accent);
+  text-transform: uppercase; letter-spacing: 0.12em;
+  margin-bottom: 24px;
+}
+.hero-eyebrow::before {
+  content: ''; display: block;
+  width: 24px; height: 1px; background: var(--accent);
+}
+
+h1 {
+  font-family: var(--display); font-weight: 800;
+  font-size: clamp(40px, 7vw, 72px);
+  line-height: 1.0; letter-spacing: -0.03em;
+  margin-bottom: 20px;
+}
+h1 em { color: var(--accent); font-style: normal; }
+
+.hero-sub {
+  font-size: 16px; color: var(--muted); max-width: 500px;
+  margin-bottom: 40px; line-height: 1.7;
+}
+
+.hero-stats {
+  display: flex; gap: 32px; flex-wrap: wrap;
+  padding: 20px 0; border-top: 1px solid var(--border);
+  margin-bottom: 48px;
+}
+.stat-item { }
+.stat-n {
+  font-family: var(--display); font-weight: 700; font-size: 28px;
+  color: var(--accent); letter-spacing: -0.02em;
+}
+.stat-l { font-size: 12px; color: var(--muted); font-family: var(--mono); margin-top: 2px; }
+
+/* ── TAGS ── */
+.doc-tags { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 48px; }
+.doc-tag {
+  font-family: var(--mono); font-size: 11px;
+  padding: 5px 12px; border: 1px solid var(--border2);
+  border-radius: 2px; color: var(--muted);
+  background: var(--bg3); cursor: default;
+  transition: all 0.15s;
+}
+.doc-tag:hover { border-color: var(--accent); color: var(--accent); }
+
+/* ── UPLOAD ZONE ── */
+.upload-section { margin-bottom: 64px; }
+
+.section-label {
+  font-family: var(--mono); font-size: 11px; color: var(--muted);
+  text-transform: uppercase; letter-spacing: 0.1em;
+  margin-bottom: 16px; display: flex; align-items: center; gap: 10px;
+}
+.section-label::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+
+.drop-zone {
+  border: 1px solid var(--border2);
+  border-radius: 4px;
+  padding: 56px 32px;
+  text-align: center;
+  cursor: pointer;
+  position: relative;
+  background: var(--bg2);
+  transition: all 0.2s;
+  overflow: hidden;
+}
+.drop-zone::before {
+  content: '';
+  position: absolute; inset: 0;
+  background: radial-gradient(ellipse at 50% 0%, rgba(184,255,87,0.04) 0%, transparent 60%);
+  pointer-events: none;
+}
+.drop-zone:hover, .drop-zone.over {
+  border-color: var(--accent);
+  background: rgba(184,255,87,0.03);
+}
+.drop-zone input {
+  position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%;
+}
+.drop-icon {
+  width: 48px; height: 48px; margin: 0 auto 16px;
+  border: 1px solid var(--border2); border-radius: 4px;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--bg3);
+}
+.drop-icon svg { width: 22px; height: 22px; stroke: var(--muted); }
+.drop-title { font-family: var(--display); font-weight: 600; font-size: 16px; margin-bottom: 6px; }
+.drop-sub { font-size: 13px; color: var(--muted); }
+.drop-sub strong { color: var(--text); font-weight: 500; }
+
+/* ── PROCESSING ── */
+.processing {
+  display: none; padding: 24px;
+  border: 1px solid var(--border); border-radius: 4px;
+  background: var(--bg2);
+}
+.processing.show { display: block; }
+.proc-steps { display: flex; flex-direction: column; gap: 0; }
+.proc-step {
+  display: flex; align-items: center; gap: 14px;
+  padding: 10px 0; border-bottom: 1px solid var(--border);
+  font-family: var(--mono); font-size: 12px;
+}
+.proc-step:last-child { border-bottom: none; }
+.step-dot {
+  width: 8px; height: 8px; border-radius: 50%;
+  background: var(--bg4); border: 1px solid var(--border2);
+  flex-shrink: 0; transition: all 0.3s;
+}
+.step-dot.active { background: var(--accent); border-color: var(--accent); box-shadow: 0 0 8px rgba(184,255,87,0.5); }
+.step-dot.done { background: var(--verified); border-color: var(--verified); }
+.step-label { color: var(--muted); flex: 1; }
+.step-label.active { color: var(--text); }
+.step-label.done { color: var(--muted); }
+.step-value { color: var(--accent2); font-size: 11px; }
+
+/* ── ERROR ── */
+.error-box {
+  display: none; padding: 14px 18px;
+  border: 1px solid rgba(255,87,87,0.3); border-radius: 4px;
+  background: rgba(255,87,87,0.06); color: var(--rejected);
+  font-family: var(--mono); font-size: 12px;
+  margin-top: 12px;
+}
+.error-box.show { display: block; }
+
+/* ── RESULTS ── */
+.results { display: none; animation: fadeUp 0.4s ease; }
+.results.show { display: block; }
+@keyframes fadeUp { from { opacity:0; transform: translateY(12px); } to { opacity:1; transform:none; } }
+
+/* verdict bar */
+.verdict {
+  display: flex; align-items: center; gap: 16px;
+  padding: 20px 24px; border-radius: 4px;
+  border: 1px solid var(--border2);
+  background: var(--bg2); margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+.verdict-type {
+  font-family: var(--display); font-size: 22px; font-weight: 700;
+  letter-spacing: -0.02em; flex: 1; min-width: 160px;
+}
+.verdict-badge {
+  font-family: var(--mono); font-size: 11px; font-weight: 500;
+  padding: 5px 14px; border-radius: 2px; text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+.v-verified   { background: rgba(87,255,158,0.12); color: var(--verified); border: 1px solid rgba(87,255,158,0.3); }
+.v-needs_review { background: rgba(255,213,87,0.1); color: var(--review); border: 1px solid rgba(255,213,87,0.25); }
+.v-unverified { background: rgba(138,136,152,0.1); color: var(--unverified); border: 1px solid rgba(138,136,152,0.25); }
+.v-rejected   { background: rgba(255,87,87,0.1); color: var(--rejected); border: 1px solid rgba(255,87,87,0.25); }
+
+.verdict-scores { display: flex; gap: 24px; }
+.vscore { text-align: center; }
+.vscore-n { font-family: var(--display); font-size: 20px; font-weight: 700; }
+.vscore-l { font-family: var(--mono); font-size: 10px; color: var(--muted); margin-top: 2px; }
+
+/* score ring */
+.score-ring { display: inline-block; position: relative; width: 48px; height: 48px; }
+.score-ring svg { transform: rotate(-90deg); }
+.score-ring-label {
+  position: absolute; inset: 0;
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--mono); font-size: 11px; font-weight: 500;
+}
+
+/* two col */
+.two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
+@media (max-width: 640px) { .two-col { grid-template-columns: 1fr; } }
+
+.panel {
+  background: var(--bg2); border: 1px solid var(--border);
+  border-radius: 4px; overflow: hidden;
+}
+.panel-head {
+  padding: 10px 16px; border-bottom: 1px solid var(--border);
+  font-family: var(--mono); font-size: 11px; color: var(--muted);
+  text-transform: uppercase; letter-spacing: 0.08em;
+  display: flex; justify-content: space-between; align-items: center;
+}
+.panel-body { padding: 4px 0; }
+
+.field-row {
+  display: flex; padding: 7px 16px; gap: 12px;
+  border-bottom: 1px solid var(--border);
+  font-size: 13px;
+}
+.field-row:last-child { border-bottom: none; }
+.field-key { color: var(--muted); width: 42%; flex-shrink: 0; font-family: var(--mono); font-size: 12px; }
+.field-val { color: var(--text); word-break: break-word; }
+.field-val.null-val { color: var(--bg4); font-family: var(--mono); font-size: 11px; }
+
+/* line items */
+.items-table { width: 100%; border-collapse: collapse; font-size: 12px; font-family: var(--mono); }
+.items-table th {
+  padding: 8px 14px; text-align: left; color: var(--muted);
+  border-bottom: 1px solid var(--border);
+  font-weight: 400; font-size: 11px; text-transform: uppercase;
+}
+.items-table td { padding: 8px 14px; border-bottom: 1px solid var(--border); color: var(--text); }
+.items-table tr:last-child td { border-bottom: none; }
+.items-table td:not(:first-child) { text-align: right; color: var(--accent2); }
+.items-table th:not(:first-child) { text-align: right; }
+
+/* validation */
+.vitem {
+  display: flex; align-items: flex-start; gap: 10px;
+  padding: 9px 16px; border-bottom: 1px solid var(--border);
+  font-size: 13px;
+}
+.vitem:last-child { border-bottom: none; }
+.vtag {
+  font-family: var(--mono); font-size: 10px; padding: 2px 7px;
+  border-radius: 2px; flex-shrink: 0; margin-top: 1px;
+  text-transform: uppercase; letter-spacing: 0.05em;
+}
+.vtag-err { background: rgba(255,87,87,0.15); color: var(--rejected); }
+.vtag-warn { background: rgba(255,213,87,0.12); color: var(--review); }
+
+/* pipeline log */
+.log-line {
+  font-family: var(--mono); font-size: 11px; color: var(--muted);
+  padding: 4px 16px; line-height: 1.5;
+}
+.log-line span { color: var(--accent); }
+
+/* json */
+.json-wrap {
+  background: var(--bg2); border: 1px solid var(--border); border-radius: 4px;
+  margin-top: 16px; overflow: hidden;
+}
+.json-head {
+  padding: 10px 16px; border-bottom: 1px solid var(--border);
+  display: flex; justify-content: space-between; align-items: center;
+  cursor: pointer;
+}
+.json-head-label { font-family: var(--mono); font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; }
+.json-toggle-btn {
+  font-family: var(--mono); font-size: 11px; color: var(--accent);
+  background: none; border: 1px solid rgba(184,255,87,0.2); padding: 3px 10px;
+  border-radius: 2px; cursor: pointer;
+}
+.json-content {
+  display: none; padding: 16px; font-family: var(--mono); font-size: 12px;
+  color: var(--text); white-space: pre-wrap; word-break: break-all;
+  max-height: 400px; overflow-y: auto; line-height: 1.6;
+  background: var(--bg);
+}
+.json-content.show { display: block; }
+
+/* reset */
+.reset-row { margin-top: 24px; display: flex; justify-content: flex-end; }
+.reset-btn {
+  font-family: var(--mono); font-size: 12px; color: var(--muted);
+  background: none; border: 1px solid var(--border); padding: 7px 18px;
+  border-radius: 2px; cursor: pointer; transition: all 0.15s;
+  text-transform: uppercase; letter-spacing: 0.06em;
+}
+.reset-btn:hover { border-color: var(--border2); color: var(--text); }
+
+/* ── FOOTER ── */
+footer {
+  margin-top: 80px; padding: 32px 0;
+  border-top: 1px solid var(--border);
+  display: flex; justify-content: space-between; align-items: center;
+  flex-wrap: wrap; gap: 12px;
+}
+.foot-l { font-family: var(--mono); font-size: 11px; color: var(--muted); }
+.foot-r { display: flex; gap: 16px; }
+.foot-tag {
+  font-family: var(--mono); font-size: 10px; color: var(--muted);
+  border: 1px solid var(--border); padding: 3px 8px; border-radius: 2px;
+}
+
+/* scrollbar */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: var(--bg2); }
+::-webkit-scrollbar-thumb { background: var(--bg4); border-radius: 3px; }
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-inner">
+    <div class="nav-logo">MID<span>PE</span></div>
+    <div class="nav-tag">v1.0.0 · portfolio demo</div>
+  </div>
+</nav>
+
+<div class="wrap">
+  <section class="hero">
+    <div class="hero-eyebrow">Modular Intelligent Document Processing Engine</div>
+    <h1>Extract. Classify.<br><em>Verify.</em></h1>
+    <p class="hero-sub">Upload any business document and watch MIDPE identify its type, extract structured fields, validate data integrity, and score confidence — all in one pass.</p>
+
+    <div class="hero-stats">
+      <div class="stat-item"><div class="stat-n">8</div><div class="stat-l">doc types</div></div>
+      <div class="stat-item"><div class="stat-n">5</div><div class="stat-l">pipeline stages</div></div>
+      <div class="stat-item"><div class="stat-n">100%</div><div class="stat-l">local · no cloud</div></div>
+      <div class="stat-item"><div class="stat-n">EN + ES</div><div class="stat-l">bilingual</div></div>
+    </div>
+
+    <div class="doc-tags">
+      <span class="doc-tag">Invoice</span>
+      <span class="doc-tag">Bank Statement</span>
+      <span class="doc-tag">Purchase Order</span>
+      <span class="doc-tag">Contract</span>
+      <span class="doc-tag">Salary Slip</span>
+      <span class="doc-tag">Utility Bill</span>
+      <span class="doc-tag">Application Form</span>
+      <span class="doc-tag">Report</span>
+    </div>
+  </section>
+
+  <section class="upload-section">
+    <div class="section-label">Live demo</div>
+
+    <div class="drop-zone" id="dropZone">
+      <input type="file" id="fileInput" accept=".pdf" />
+      <div class="drop-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/>
+          <polyline points="14,2 14,8 20,8"/>
+          <line x1="12" y1="18" x2="12" y2="12"/>
+          <polyline points="9,15 12,12 15,15"/>
+        </svg>
+      </div>
+      <div class="drop-title">Drop your PDF here</div>
+      <div class="drop-sub"><strong>Invoice, bank statement, contract</strong> — any business document</div>
+    </div>
+
+    <div class="error-box" id="errBox"></div>
+
+    <div class="processing" id="processing">
+      <div class="proc-steps" id="procSteps">
+        <div class="proc-step" id="s0">
+          <div class="step-dot" id="d0"></div>
+          <div class="step-label" id="l0">Reading PDF text layer</div>
+          <div class="step-value" id="v0"></div>
+        </div>
+        <div class="proc-step" id="s1">
+          <div class="step-dot" id="d1"></div>
+          <div class="step-label" id="l1">Classifying document type</div>
+          <div class="step-value" id="v1"></div>
+        </div>
+        <div class="proc-step" id="s2">
+          <div class="step-dot" id="d2"></div>
+          <div class="step-label" id="l2">Selecting extraction strategy</div>
+          <div class="step-value" id="v2"></div>
+        </div>
+        <div class="proc-step" id="s3">
+          <div class="step-dot" id="d3"></div>
+          <div class="step-label" id="l3">Extracting structured fields</div>
+          <div class="step-value" id="v3"></div>
+        </div>
+        <div class="proc-step" id="s4">
+          <div class="step-dot" id="d4"></div>
+          <div class="step-label" id="l4">Validating & scoring confidence</div>
+          <div class="step-value" id="v4"></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="results" id="results">
+    <div class="section-label">Extraction result</div>
+
+    <div class="verdict" id="verdictBar"></div>
+
+    <div class="two-col">
+      <div class="panel" id="panelMain">
+        <div class="panel-head"><span>Key fields</span></div>
+        <div class="panel-body" id="bodyMain"></div>
+      </div>
+      <div class="panel" id="panelMeta">
+        <div class="panel-head"><span>Classification</span></div>
+        <div class="panel-body" id="bodyMeta"></div>
+      </div>
+    </div>
+
+    <div class="panel" id="panelItems" style="display:none; margin-bottom:16px;">
+      <div class="panel-head"><span>Line items</span><span id="itemCount"></span></div>
+      <div style="overflow-x:auto"><table class="items-table" id="itemsTable"></table></div>
+    </div>
+
+    <div class="two-col">
+      <div class="panel" id="panelValidation">
+        <div class="panel-head"><span>Validation</span></div>
+        <div class="panel-body" id="bodyValidation"></div>
+      </div>
+      <div class="panel" id="panelLog">
+        <div class="panel-head"><span>Pipeline log</span></div>
+        <div class="panel-body" id="bodyLog" style="padding: 8px 0;"></div>
+      </div>
+    </div>
+
+    <div class="json-wrap">
+      <div class="json-head" onclick="toggleJson()">
+        <span class="json-head-label">Raw JSON output</span>
+        <button class="json-toggle-btn" id="jsonBtn">Show</button>
+      </div>
+      <pre class="json-content" id="jsonContent"></pre>
+    </div>
+
+    <div class="reset-row">
+      <button class="reset-btn" onclick="resetDemo()">&#8617; Process another file</button>
+    </div>
+  </section>
+
+  <footer>
+    <div class="foot-l">Built by Abdul Basit · MIDPE v1.0.0</div>
+    <div class="foot-r">
+      <span class="foot-tag">Python 3.12</span>
+      <span class="foot-tag">pdfplumber</span>
+      <span class="foot-tag">Claude API</span>
+    </div>
+  </footer>
+</div>
+
+<script>
+const dropZone = document.getElementById('dropZone');
+const fileInput = document.getElementById('fileInput');
+const procEl   = document.getElementById('processing');
+const resultsEl = document.getElementById('results');
+const errBox   = document.getElementById('errBox');
+
+dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('over'); });
+dropZone.addEventListener('dragleave', () => dropZone.classList.remove('over'));
+dropZone.addEventListener('drop', e => { e.preventDefault(); dropZone.classList.remove('over'); if (e.dataTransfer.files[0]) handleFile(e.dataTransfer.files[0]); });
+fileInput.addEventListener('change', () => { if (fileInput.files[0]) handleFile(fileInput.files[0]); });
+
+function stepActivate(i) {
+  document.getElementById('d'+i).className = 'step-dot active';
+  document.getElementById('l'+i).className = 'step-label active';
+}
+function stepDone(i, val) {
+  document.getElementById('d'+i).className = 'step-dot done';
+  document.getElementById('l'+i).className = 'step-label done';
+  if (val) document.getElementById('v'+i).textContent = val;
+}
+
+async function handleFile(file) {
+  if (!file.name.toLowerCase().endsWith('.pdf')) { showErr('Please upload a PDF file.'); return; }
+  errBox.classList.remove('show');
+  resultsEl.classList.remove('show');
+  dropZone.style.display = 'none';
+  procEl.classList.add('show');
+
+  for (let i=0;i<5;i++){
+    document.getElementById('d'+i).className='step-dot';
+    document.getElementById('l'+i).className='step-label';
+    document.getElementById('v'+i).textContent='';
+  }
+
+  try {
+    stepActivate(0);
+    const b64 = await toBase64(file);
+    stepDone(0, `${(file.size/1024).toFixed(1)} KB`);
+
+    stepActivate(1);
+    const t0 = Date.now();
+
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 1000,
+        system: `You are MIDPE — a document intelligence engine. Analyse the uploaded PDF and return ONLY a valid JSON object, no markdown or prose.
+
+Schema:
+{
+  "doc_type": "invoice|bank_statement|purchase_order|contract|salary_slip|utility_bill|application_form|report|unknown",
+  "label": "Human readable label",
+  "classifier_confidence": 0.00-1.00,
+  "extraction_strategy": "strategy_a|strategy_b|strategy_c",
+  "strategy_reason": "one line reason",
+  "vendor_name": null or string,
+  "client_name": null or string,
+  "document_number": null or string,
+  "document_date": null or "YYYY-MM-DD",
+  "due_date": null or "YYYY-MM-DD",
+  "currency": null or string,
+  "subtotal": null or number,
+  "tax_amount": null or number,
+  "discount": null or number,
+  "total_amount": null or number,
+  "payment_terms": null or string,
+  "payment_method": null or string,
+  "extra_fields": {},
+  "line_items": [{"description":string,"quantity":null or number,"unit_price":null or number,"amount":null or number}],
+  "validation_errors": [],
+  "validation_warnings": [],
+  "pipeline_log": ["Step 1: ...", "Step 2: ...", "Step 3: ...", "Step 4a: ...", "Step 4b: ..."],
+  "confidence_score": 0.00-1.00,
+  "storage_action": "verified|needs_review|unverified|rejected"
+}
+Extract every visible field. Return ONLY the JSON object.`,
+        messages: [{
+          role: 'user',
+          content: [
+            { type: 'document', source: { type: 'base64', media_type: 'application/pdf', data: b64 }},
+            { type: 'text', text: 'Process this document through the full MIDPE pipeline and return the JSON result.' }
+          ]
+        }]
+      })
+    });
+
+    const data = await res.json();
+    if (data.error) throw new Error(data.error.message);
+    const raw = data.content.map(b=>b.text||'').join('');
+    const parsed = JSON.parse(raw.replace(/```json|```/g,'').trim());
+    const elapsed = Date.now() - t0;
+
+    stepDone(1, parsed.label);
+    stepActivate(2); await delay(200);
+    stepDone(2, parsed.extraction_strategy || 'strategy_a');
+    stepActivate(3); await delay(300);
+    const nFields = Object.values(parsed).filter(v => v !== null && typeof v !== 'object' && typeof v !== 'boolean').length;
+    stepDone(3, nFields + ' fields');
+    stepActivate(4); await delay(200);
+    const errs = (parsed.validation_errors||[]).length;
+    stepDone(4, errs ? errs+' issue'+(errs>1?'s':'') : 'clean');
+
+    await delay(400);
+    procEl.classList.remove('show');
+    renderResults(parsed, file.name, elapsed);
+
+  } catch(e) {
+    procEl.classList.remove('show');
+    dropZone.style.display = '';
+    showErr('Error: ' + e.message);
+  }
+}
+
+function renderResults(d, filename, ms) {
+  const action = d.storage_action || 'unverified';
+  const actionLabel = { verified:'Verified', needs_review:'Needs review', unverified:'Unverified', rejected:'Rejected' }[action] || action;
+  const conf = Math.round((d.confidence_score||0)*100);
+  const cConf = Math.round((d.classifier_confidence||0)*100);
+
+  // verdict
+  document.getElementById('verdictBar').innerHTML = `
+    <div class="verdict-type">${d.label || d.doc_type || 'Unknown'}</div>
+    <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
+      <div class="verdict-scores">
+        <div class="vscore"><div class="vscore-n" style="color:var(--accent)">${cConf}%</div><div class="vscore-l">classifier</div></div>
+        <div class="vscore"><div class="vscore-n" style="color:var(--accent2)">${conf}%</div><div class="vscore-l">confidence</div></div>
+        <div class="vscore"><div class="vscore-n" style="color:var(--muted)">${ms}ms</div><div class="vscore-l">processed</div></div>
+      </div>
+      <div class="verdict-badge v-${action}">${actionLabel}</div>
+    </div>
+  `;
+
+  // main fields
+  const skip = new Set(['doc_type','label','classifier_confidence','extraction_strategy','strategy_reason','confidence_score','storage_action','line_items','extra_fields','validation_errors','validation_warnings','pipeline_log']);
+  const labelMap = {vendor_name:'Vendor',client_name:'Client',document_number:'Doc. number',document_date:'Date',due_date:'Due date',currency:'Currency',subtotal:'Subtotal',tax_amount:'Tax',discount:'Discount',total_amount:'Total',payment_terms:'Payment terms',payment_method:'Payment method'};
+  let mainHtml = '';
+  for (const [k,v] of Object.entries(d)) {
+    if (skip.has(k)) continue;
+    const label = labelMap[k] || k.replace(/_/g,' ');
+    const display = v === null ? '<span class="null-val">—</span>' : String(typeof v==='number'?v.toLocaleString():v);
+    mainHtml += `<div class="field-row"><div class="field-key">${label}</div><div class="field-val">${display}</div></div>`;
+  }
+  if (d.extra_fields) for (const [k,v] of Object.entries(d.extra_fields)) {
+    if (v) mainHtml += `<div class="field-row"><div class="field-key">${k}</div><div class="field-val">${v}</div></div>`;
+  }
+  document.getElementById('bodyMain').innerHTML = mainHtml || '<div class="field-row"><div class="field-key">—</div></div>';
+
+  // meta
+  document.getElementById('bodyMeta').innerHTML = `
+    <div class="field-row"><div class="field-key">type</div><div class="field-val">${d.doc_type}</div></div>
+    <div class="field-row"><div class="field-key">strategy</div><div class="field-val">${d.extraction_strategy||'—'}</div></div>
+    <div class="field-row"><div class="field-key">reason</div><div class="field-val" style="font-size:12px;color:var(--muted)">${d.strategy_reason||'—'}</div></div>
+    <div class="field-row"><div class="field-key">file</div><div class="field-val" style="font-size:12px;color:var(--muted)">${filename}</div></div>
+  `;
+
+  // line items
+  const items = d.line_items || [];
+  if (items.length) {
+    document.getElementById('itemCount').textContent = items.length + ' item' + (items.length>1?'s':'');
+    const cols = ['description','quantity','unit_price','amount'];
+    const headers = cols.map(c=>`<th>${c.replace('_',' ')}</th>`).join('');
+    const rows = items.map(item=>'<tr>'+cols.map((c,i)=>{
+      const v = item[c];
+      return `<td${i===0?' style="text-align:left"':''}>${v!==null&&v!==undefined?v:'—'}</td>`;
+    }).join('')+'</tr>').join('');
+    document.getElementById('itemsTable').innerHTML = `<thead><tr>${headers}</tr></thead><tbody>${rows}</tbody>`;
+    document.getElementById('panelItems').style.display = '';
+  }
+
+  // validation
+  const errors = d.validation_errors || [];
+  const warnings = d.validation_warnings || [];
+  let vHtml = '';
+  if (!errors.length && !warnings.length) {
+    vHtml = '<div class="vitem"><span class="vtag" style="background:rgba(87,255,158,0.12);color:var(--verified)">Pass</span><span>All validation checks passed</span></div>';
+  } else {
+    errors.forEach(e => vHtml += `<div class="vitem"><span class="vtag vtag-err">Error</span><span>${e}</span></div>`);
+    warnings.forEach(w => vHtml += `<div class="vitem"><span class="vtag vtag-warn">Warn</span><span>${w}</span></div>`);
+  }
+  document.getElementById('bodyValidation').innerHTML = vHtml;
+
+  // log
+  const logs = d.pipeline_log || [];
+  const logHtml = logs.map(l => {
+    const parts = l.replace(/→/g, '<span>→</span>');
+    return `<div class="log-line">${parts}</div>`;
+  }).join('') || '<div class="log-line" style="padding:12px 16px">No log available</div>';
+  document.getElementById('bodyLog').innerHTML = logHtml;
+
+  // json
+  document.getElementById('jsonContent').textContent = JSON.stringify(d, null, 2);
+
+  resultsEl.classList.add('show');
+  resultsEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function toggleJson() {
+  const c = document.getElementById('jsonContent');
+  const b = document.getElementById('jsonBtn');
+  c.classList.toggle('show');
+  b.textContent = c.classList.contains('show') ? 'Hide' : 'Show';
+}
+
+function resetDemo() {
+  resultsEl.classList.remove('show');
+  errBox.classList.remove('show');
+  document.getElementById('jsonContent').classList.remove('show');
+  document.getElementById('jsonBtn').textContent = 'Show';
+  document.getElementById('panelItems').style.display = 'none';
+  dropZone.style.display = '';
+  fileInput.value = '';
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function showErr(msg) { errBox.textContent = msg; errBox.classList.add('show'); }
+function delay(ms) { return new Promise(r => setTimeout(r, ms)); }
+function toBase64(file) {
+  return new Promise((res, rej) => {
+    const r = new FileReader();
+    r.onload = () => res(r.result.split(',')[1]);
+    r.onerror = () => rej(new Error('Failed to read file'));
+    r.readAsDataURL(file);
+  });
+}
+</script>
+</body>
+</html>

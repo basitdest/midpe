@@ -11,12 +11,21 @@ DOCUMENT_TYPES = {
     "invoice": {
         "label": "Invoice",
         "keywords": [
+            # English
             "invoice number", "invoice no", "bill to", "tax invoice",
             "invoice date", "due date", "subtotal", "tax amount",
             "total amount due", "payment terms", "item description",
-            "unit price", "quantity", "gst", "vat", "amount due"
+            "unit price", "quantity", "gst", "vat", "amount due",
+            # Spanish / CFDI (Mexican)
+            "factura", "folio", "emision", "receptor", "emisor",
+            "descuento", "importe", "moneda", "tipo de cambio",
+            "forma de pago", "metodo de pago", "fecha de vencimiento",
+            "sat nombre registrado", "facturar a", "cfdi",
         ],
-        "header_patterns": [r"invoice\s*#?\s*\d+", r"tax\s+invoice", r"bill\s+to"],
+        "header_patterns": [
+            r"invoice\s*#?\s*\d+", r"tax\s+invoice", r"bill\s+to",
+            r"factura\s+de\s+venta", r"factura\s+#", r"folio\s*:\s*INV",
+        ],
         "extractor": "invoice_extractor",
         "priority": 1,
     },

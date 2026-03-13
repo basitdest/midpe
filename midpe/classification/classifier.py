@@ -13,7 +13,7 @@ Returns: (doc_type: str, confidence: float, scores: dict)
 import re
 import math
 from collections import Counter
-from config import DOCUMENT_TYPES
+from midpe.config import DOCUMENT_TYPES
 
 
 # ─────────────────────────────────────────────
